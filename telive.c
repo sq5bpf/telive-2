@@ -1,9 +1,10 @@
-/* telive v1.10 - tetra live monitor
- * (c) 2014-2023 Jacek Lipkowski <sq5bpf@lipkowski.org>
+/* telive v2.0 - tetra live monitor
+ * (c) 2014-2026 Jacek Lipkowski <sq5bpf@lipkowski.org>
  * Licensed under GPLv3, please read the file LICENSE, which accompanies 
  * the telive program sources 
  *
  * Changelog:
+ * v2.0 - start new version which will be compatible with osmo-tetra-sq5bpf-2 --sq5bpf
  * v1.10 - show information about encryption, fix tickf scheduling under load --sq5bpf
  * v1.9 - better text input, scanning support --sq5bpf
  * v1.8 - handle osmo-tetra-sq5bpf protocol changes, use call identifiers for some stuff, various fixes --sq5bpf
@@ -175,6 +176,7 @@ struct usi {
 	time_t ssi_time[3];
 	time_t ssi_time_rec;
 	int encr;
+	int decrypted;
 	int timeout;
 	int active;
 	int play;
@@ -575,6 +577,7 @@ void updidx(int idx) {
 	if (ssis[idx].active) strcat(opis,"OK ");
 	//	if (ssis[idx].timeout) strcat(opis,"timeout ");
 	if (ssis[idx].encr) strcat(opis,"ENCR ");
+	if (ssis[idx].decrypted) strcat(opis,"de ");
 	if ((ssis[idx].play)&&(ssis[idx].active)) { bold=1; strcat(opis,"*PLAY* "); }
 	if (ssis[idx].cid) { sprintf(opis2,"%i [%i]",ssis[idx].cid,ssis[idx].lastrx);  }
 	if (bold) wattron(mainwin,A_BOLD|COLOR_PAIR(1));
@@ -2212,17 +2215,21 @@ int parsetraffic(unsigned char *buf)
 	time_t tt=time(0);
 	FILE *f;
 	int rxid;
+	int decrypted;
 	struct receiver *ptr;
 
 	usage=getptrint((char *)buf,"TRA:",16);
 	rxid=getptrint((char *)buf,"RX:",16);
+	decrypted=getptrint((char *)buf,"DECR:",16);
 
 	/* don't process data from muted receivers */
 	ptr=find_receiver(rxid);
 	if ((ptr)&&(ptr->state&RX_MUTED)) return(0);
 
 	if ((usage<1)||(usage>63)) return(0);
-	c=buf+13;
+	c=buf+20;
+
+	ssis[usage].decrypted=decrypted;
 
 	if (!ssis[usage].active) {
 		ssis[usage].active=1;
@@ -2863,6 +2870,8 @@ int main(void)
 	struct timeval last_tickf;
 	long timediff;
 
+	memset((void *)&last_tickf,0,sizeof(last_tickf));
+
 	//system("resize -s 60 203"); /* this blocks on some xterms, no idea why */
 	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
 		diep("socket");
@@ -2966,7 +2975,7 @@ int main(void)
 
 				} else
 				{
-					if (len==1393) 
+					if (len==1400) 
 					{ 
 						if (newopis()) initopis();
 						parsetraffic(buf);		

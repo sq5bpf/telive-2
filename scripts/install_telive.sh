@@ -1,5 +1,5 @@
 #!/bin/bash
-# install_telive.sh (c) 2015-2018 Jacek Lipkowski <sq5bpf@lipkowski.org>
+# install_telive.sh (c) 2015-2026 Jacek Lipkowski <sq5bpf@lipkowski.org>
 #
 # simple script to install telive under Debian 8, Ubuntu 14 (and maybe 15), Linux mint 17.2
 # 
@@ -239,15 +239,15 @@ install_libosmocore () {
 
 		install_osmo_tetra_sq5bpf() {
 			echo "INSTALLING osmo-tetra-sq5bpf"
-			git clone https://github.com/sq5bpf/osmo-tetra-sq5bpf && \
-				cd osmo-tetra-sq5bpf/src && \
+			git clone https://github.com/sq5bpf/osmo-tetra-sq5bpf-2 && \
+				cd osmo-tetra-sq5bpf-2/src && \
 				make
 			}
 
 		install_telive() {
 			echo "INSTALLING telive"
-			git clone https://github.com/sq5bpf/telive && \
-				cd telive && \
+			git clone https://github.com/sq5bpf/telive-2 && \
+				cd telive-2 && \
 				make && \
 				chmod 755 install.sh && \
 				./install.sh
@@ -328,7 +328,7 @@ fi
 
 echo 
 echo "The most up to date version of the manual is always located here:"
-echo "https://github.com/sq5bpf/telive/raw/master/telive_doc.pdf"
+echo "https://github.com/sq5bpf/telive-2/raw/master/telive_doc.pdf"
 
 
 

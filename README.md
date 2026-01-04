@@ -1,11 +1,17 @@
 telive - Tetra Live Monitor
-(c) 2014-2015 Jacek Lipkowski <sq5bpf@lipkowski.org>
+(c) 2014-2026 Jacek Lipkowski <sq5bpf@lipkowski.org>
 
 telive is a program which can be used to display information like
 signalling, calls etc from a Tetra network. It is also possible to
 log the signalling information, listen to the audio in realtime and
 to record the audio. Playing the audio and recompressing it into ogg
 is done via external scripts.
+
+Note: this is a test version that will be used with osmo-tetra-sq5bpf-2:
+https://github.com/sq5bpf/osmo-tetra-sq5bpf-2
+
+For now this is for experimenting.
+
 
 Please read telive_doc.pdf, either in this directory or here:
 https://github.com/sq5bpf/telive/raw/master/telive_doc.pdf
