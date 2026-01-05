@@ -55,7 +55,7 @@
 #include "telive.h"
 #include "telive_receiver.h"
 
-#define TELIVE_VERSION "1.10"
+#define TELIVE_VERSION "2.0"
 
 #define BUFLEN 8192
 #define PORT 7379
