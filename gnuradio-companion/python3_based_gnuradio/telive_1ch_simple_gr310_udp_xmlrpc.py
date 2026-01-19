@@ -27,6 +27,8 @@ from gnuradio import qtgui
 from gnuradio.filter import firdes
 import sip
 from gnuradio import analog
+from gnuradio import blocks
+import pmt
 from gnuradio import filter
 from gnuradio import gr
 from gnuradio.fft import window
@@ -83,10 +85,10 @@ class telive_1ch_simple_gr310_udp_xmlrpc(gr.top_block, Qt.QWidget):
         # Variables
         ##################################################
         self.xlate_offset_fine1 = xlate_offset_fine1 = 0
+        self.xlate_offset1 = xlate_offset1 = 500000
         self.samp_rate = samp_rate = 2000000
         self.freq = freq = 438.0125e6
         self.first_decim = first_decim = 32
-        self.xlate_offset1 = xlate_offset1 = 500000
         self.variable_qtgui_label_0_0 = variable_qtgui_label_0_0 = (freq+xlate_offset_fine1)
         self.udp_packet_size = udp_packet_size = 1472
         self.udp_dest_addr = udp_dest_addr = "127.0.0.1"
@@ -98,6 +100,7 @@ class telive_1ch_simple_gr310_udp_xmlrpc(gr.top_block, Qt.QWidget):
         self.out_sample_rate = out_sample_rate = 36000
         self.options_low_pass = options_low_pass = 12500
         self.if_samp_rate = if_samp_rate = samp_rate/first_decim
+        self.freq_with_offset = freq_with_offset = freq-xlate_offset1
         self.first_port = first_port = 42000
 
         ##################################################
@@ -201,7 +204,7 @@ class telive_1ch_simple_gr310_udp_xmlrpc(gr.top_block, Qt.QWidget):
         self.qtgui_freq_sink_x_0 = qtgui.freq_sink_c(
             1024, #size
             window.WIN_BLACKMAN_hARRIS, #wintype
-            (freq-xlate_offset1), #fc
+            0, #fc
             samp_rate, #bw
             "", #name
             1,
@@ -262,6 +265,8 @@ class telive_1ch_simple_gr310_udp_xmlrpc(gr.top_block, Qt.QWidget):
         self.network_udp_sink_0 = network.udp_sink(gr.sizeof_gr_complex, 1, udp_dest_addr, (first_port+1), 0, udp_packet_size, False)
         self.mmse_resampler_xx_0 = filter.mmse_resampler_cc(0, (float(float(if_samp_rate)/float(out_sample_rate))))
         self.freq_xlating_fir_filter_xxx_0 = filter.freq_xlating_fir_filter_ccc(first_decim, firdes.low_pass(1, samp_rate, options_low_pass, options_low_pass*0.2), (xlate_offset1+xlate_offset_fine1), samp_rate)
+        self.blocks_var_to_msg_0 = blocks.var_to_msg_pair('freq')
+        self.blocks_message_strobe_0 = blocks.message_strobe(pmt.cons(pmt.intern("freq"),pmt.from_float(freq_with_offset)), 100)
         self.analog_agc3_xx_0 = analog.agc3_cc((1e-3), (1e-4), 1.0, 1.0, 1)
         self.analog_agc3_xx_0.set_max_gain(65536)
 
@@ -269,6 +274,8 @@ class telive_1ch_simple_gr310_udp_xmlrpc(gr.top_block, Qt.QWidget):
         ##################################################
         # Connections
         ##################################################
+        self.msg_connect((self.blocks_message_strobe_0, 'strobe'), (self.qtgui_freq_sink_x_0, 'freq'))
+        self.msg_connect((self.blocks_var_to_msg_0, 'msgout'), (self.qtgui_freq_sink_x_0, 'freq'))
         self.connect((self.analog_agc3_xx_0, 0), (self.mmse_resampler_xx_0, 0))
         self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.analog_agc3_xx_0, 0))
         self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.qtgui_freq_sink_x_0_0, 0))
@@ -293,6 +300,15 @@ class telive_1ch_simple_gr310_udp_xmlrpc(gr.top_block, Qt.QWidget):
         self.set_variable_qtgui_label_0_0((self.freq+self.xlate_offset_fine1))
         self.freq_xlating_fir_filter_xxx_0.set_center_freq((self.xlate_offset1+self.xlate_offset_fine1))
 
+    def get_xlate_offset1(self):
+        return self.xlate_offset1
+
+    def set_xlate_offset1(self, xlate_offset1):
+        self.xlate_offset1 = xlate_offset1
+        self.set_freq_with_offset(self.freq-self.xlate_offset1)
+        self.freq_xlating_fir_filter_xxx_0.set_center_freq((self.xlate_offset1+self.xlate_offset_fine1))
+        self.osmosdr_source_0.set_center_freq((self.freq-self.xlate_offset1), 0)
+
     def get_samp_rate(self):
         return self.samp_rate
 
@@ -301,7 +317,7 @@ class telive_1ch_simple_gr310_udp_xmlrpc(gr.top_block, Qt.QWidget):
         self.set_if_samp_rate(self.samp_rate/self.first_decim)
         self.freq_xlating_fir_filter_xxx_0.set_taps(firdes.low_pass(1, self.samp_rate, self.options_low_pass, self.options_low_pass*0.2))
         self.osmosdr_source_0.set_sample_rate(self.samp_rate)
-        self.qtgui_freq_sink_x_0.set_frequency_range((self.freq-self.xlate_offset1), self.samp_rate)
+        self.qtgui_freq_sink_x_0.set_frequency_range(0, self.samp_rate)
 
     def get_freq(self):
         return self.freq
@@ -309,9 +325,9 @@ class telive_1ch_simple_gr310_udp_xmlrpc(gr.top_block, Qt.QWidget):
     def set_freq(self, freq):
         self.freq = freq
         Qt.QMetaObject.invokeMethod(self._freq_line_edit, "setText", Qt.Q_ARG("QString", eng_notation.num_to_str(self.freq)))
+        self.set_freq_with_offset(self.freq-self.xlate_offset1)
         self.set_variable_qtgui_label_0_0((self.freq+self.xlate_offset_fine1))
         self.osmosdr_source_0.set_center_freq((self.freq-self.xlate_offset1), 0)
-        self.qtgui_freq_sink_x_0.set_frequency_range((self.freq-self.xlate_offset1), self.samp_rate)
 
     def get_first_decim(self):
         return self.first_decim
@@ -319,15 +335,6 @@ class telive_1ch_simple_gr310_udp_xmlrpc(gr.top_block, Qt.QWidget):
     def set_first_decim(self, first_decim):
         self.first_decim = first_decim
         self.set_if_samp_rate(self.samp_rate/self.first_decim)
-
-    def get_xlate_offset1(self):
-        return self.xlate_offset1
-
-    def set_xlate_offset1(self, xlate_offset1):
-        self.xlate_offset1 = xlate_offset1
-        self.freq_xlating_fir_filter_xxx_0.set_center_freq((self.xlate_offset1+self.xlate_offset_fine1))
-        self.osmosdr_source_0.set_center_freq((self.freq-self.xlate_offset1), 0)
-        self.qtgui_freq_sink_x_0.set_frequency_range((self.freq-self.xlate_offset1), self.samp_rate)
 
     def get_variable_qtgui_label_0_0(self):
         return self.variable_qtgui_label_0_0
@@ -402,6 +409,14 @@ class telive_1ch_simple_gr310_udp_xmlrpc(gr.top_block, Qt.QWidget):
         self.if_samp_rate = if_samp_rate
         self.mmse_resampler_xx_0.set_resamp_ratio((float(float(self.if_samp_rate)/float(self.out_sample_rate))))
         self.qtgui_freq_sink_x_0_0.set_frequency_range(0, self.if_samp_rate)
+
+    def get_freq_with_offset(self):
+        return self.freq_with_offset
+
+    def set_freq_with_offset(self, freq_with_offset):
+        self.freq_with_offset = freq_with_offset
+        self.blocks_message_strobe_0.set_msg(pmt.cons(pmt.intern("freq"),pmt.from_float(self.freq_with_offset)))
+        self.blocks_var_to_msg_0.variable_changed(self.freq_with_offset)
 
     def get_first_port(self):
         return self.first_port

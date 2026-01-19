@@ -70,9 +70,21 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [40, 404.0]
+    coordinate: [24, 364.0]
     rotation: 0
     state: true
+- name: freq_with_offset
+  id: variable
+  parameters:
+    comment: ''
+    value: freq-xlate_offset1
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [224, 92.0]
+    rotation: 0
+    state: enabled
 - name: if_samp_rate
   id: variable
   parameters:
@@ -127,7 +139,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [360, 420.0]
+    coordinate: [760, 612.0]
     rotation: 0
     state: true
 - name: samp_rate
@@ -160,7 +172,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [448, 420.0]
+    coordinate: [656, 612.0]
     rotation: 0
     state: true
 - name: sdr_ifgain
@@ -269,7 +281,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [168, 404.0]
+    coordinate: [152, 364.0]
     rotation: 0
     state: true
 - name: analog_agc3_xx_0
@@ -294,6 +306,40 @@ blocks:
     coordinate: [568, 392.0]
     rotation: 0
     state: enabled
+- name: blocks_message_strobe_0
+  id: blocks_message_strobe
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 'note: this is a stupid hack to workaround a gnuradio bug --sq5bpf'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    msg: pmt.cons(pmt.intern("freq"),pmt.from_float(freq_with_offset))
+    period: '100'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [64, 516.0]
+    rotation: 0
+    state: enabled
+- name: blocks_var_to_msg_0
+  id: blocks_var_to_msg
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    msgname: freq
+    target: freq_with_offset
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [296, 516.0]
+    rotation: 0
+    state: true
 - name: freq_xlating_fir_filter_xxx_0
   id: freq_xlating_fir_filter_xxx
   parameters:
@@ -740,7 +786,7 @@ blocks:
     color9: '"dark green"'
     comment: ''
     ctrlpanel: 'True'
-    fc: freq-xlate_offset1
+    fc: '0'
     fftsize: '1024'
     freqhalf: 'True'
     grid: 'False'
@@ -762,7 +808,7 @@ blocks:
     name: '""'
     nconnections: '1'
     norm_window: 'False'
-    showports: 'False'
+    showports: 'True'
     tr_chan: '0'
     tr_level: '0.0'
     tr_mode: qtgui.TRIG_MODE_FREE
@@ -787,7 +833,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [280, 284.0]
+    coordinate: [376, 208.0]
     rotation: 0
     state: true
 - name: qtgui_freq_sink_x_0_0
@@ -909,6 +955,8 @@ blocks:
 
 connections:
 - [analog_agc3_xx_0, '0', mmse_resampler_xx_0, '0']
+- [blocks_message_strobe_0, strobe, qtgui_freq_sink_x_0, freq]
+- [blocks_var_to_msg_0, msgout, qtgui_freq_sink_x_0, freq]
 - [freq_xlating_fir_filter_xxx_0, '0', analog_agc3_xx_0, '0']
 - [freq_xlating_fir_filter_xxx_0, '0', qtgui_freq_sink_x_0_0, '0']
 - [mmse_resampler_xx_0, '0', network_udp_sink_0, '0']

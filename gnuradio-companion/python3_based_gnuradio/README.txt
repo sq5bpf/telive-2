@@ -3,8 +3,6 @@ versions (but this is untested).
 
 This is provided so that people can easily use distributions which ship with
 newer gnuradio (like debian 12, which i'm using).
-If you want stability, somehow install gnuradio 3.7 and use the flowgraphs in
-the python2_based_gnuradio directory.
 
 
 ### 1 channel headless receiver using the rtl-sdr dongle:
