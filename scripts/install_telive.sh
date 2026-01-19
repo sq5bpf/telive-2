@@ -17,6 +17,7 @@
 # Everything is the responsibility of the user.
 #
 # Changelog:
+# 20260119: add support for debian 12 --sq5bpf
 # 20181211: add support for debian 10 --sq5bpf
 # 20170709: add support for linux mint 18.2 and debian 9, both are totally untested --sq5bpf
 # 20160905: support gnuradio 3.7.x, where x>=10 --sq5bpf
@@ -111,6 +112,10 @@ install_gnuradio() {
 	GR_VERSION=`gnuradio-config-info -v 2>/dev/null|tr -d v`
 
 	case "$GR_VERSION" in
+		3.10.*|3.11.*|3.12.*|3.13.*)
+			echo "Found supported gnuradio $GR_VERSION"
+			return 0
+			;;
 		3.7.[5-9]*|3.7.[1-9][0-9]*|3.6.*)
 			echo "Found supported gnuradio $GR_VERSION"
 			return 0
@@ -140,6 +145,9 @@ install_gnuradio() {
 			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr && return 0
 			;;
 		"debian 8"|"debian 9"|"debian 10")
+			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr && return 0
+			;;
+		"debian 12"|"debian 13")
 			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr && return 0
 			;;
 		"debian 7"|"debian 6")
@@ -226,14 +234,16 @@ install_libosmocore () {
 	if pkg-config --libs libosmocore >/dev/null 2>&1; then
 		echo "libosmocore is already installed"
 	else
+		
 		echo "INSTALLING libosmocore"
-		git clone https://github.com/sq5bpf/libosmocore-sq5bpf && \
-			cd libosmocore-sq5bpf &&  \
-			autoreconf -i && \
-			./configure && \
-			make && \
-			sudo make install && \
-			sudo ldconfig
+		sudo apt install -y libosmocore libosmocore-dev
+#		git clone https://github.com/sq5bpf/libosmocore-sq5bpf && \
+#			cd libosmocore-sq5bpf &&  \
+#			autoreconf -i && \
+#			./configure && \
+#			make && \
+#			sudo make install && \
+#			sudo ldconfig
 				fi
 			}
 
