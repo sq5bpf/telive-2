@@ -23,4 +23,7 @@ to crash when it is operated via the xmlrpc interface (gnuradio bug #6766).
 Also the QT gui is not as nice looking and functional as the WX gui interface
 (which was unfortunately removed in gnuradio 3.8). 
 
+You can use the *.py versions directly, or if something doesn't work or you
+want to make modifications, load the grc file into gnuradio-companion.
 
+Please send bugs to Jacek Lipkowski <sq5bpf@lipkowski.org>
