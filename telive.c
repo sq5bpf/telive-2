@@ -1263,7 +1263,7 @@ void display_freq() {
 							if (tmpint==0) {
 								strcat(tmpstr," NONE");
 							} else {
-								sprintf(tmpstr2," TEA%i",tmpint);
+								sprintf(tmpstr2," Encr=%i",tmpint);
 								strcat(tmpstr,tmpstr2);
 							}
 						}
