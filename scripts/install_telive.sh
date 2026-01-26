@@ -17,6 +17,7 @@
 # Everything is the responsibility of the user.
 #
 # Changelog:
+# 20260125: add support for DragonOS Noble (Ubuntu 24.04 based)
 # 20260119: add support for debian 12 --sq5bpf
 # 20181211: add support for debian 10 --sq5bpf
 # 20170709: add support for linux mint 18.2 and debian 9, both are totally untested --sq5bpf
@@ -40,7 +41,43 @@ get_osr() {
 	( . /etc/os-release ; eval "echo \$$1" )
 }
 
+# Check if running on DragonOS
+is_dragonos() {
+	if [ -f /etc/os-dragonos ]; then
+		return 0
+	fi
+	return 1
+}
+
+get_dragonos_version() {
+	if [ -f /etc/os-dragonos ]; then
+		cat /etc/os-dragonos
+	fi
+}
+
 do_distro_specific_stuff() {
+	# Check for DragonOS first
+	if is_dragonos; then
+		DRAGONOS_VER=$(get_dragonos_version)
+		echo "Detected DragonOS: $DRAGONOS_VER"
+		case "$DRAGONOS_VER" in
+			*"Noble"*)
+				DISTRO_NAME="dragonos"
+				DISTRO_VERSION="noble"
+				IS_DRAGONOS=1
+				;;
+			*)
+				echo "Unknown DragonOS version: $DRAGONOS_VER"
+				echo "Will attempt to continue with generic DragonOS support"
+				DISTRO_NAME="dragonos"
+				DISTRO_VERSION="unknown"
+				IS_DRAGONOS=1
+				;;
+		esac
+		DISTRO="$DISTRO_NAME $DISTRO_VERSION"
+		return 0
+	fi
+
 	if [ ! -f /etc/os-release ]; then
 		echo "There is no /etc/os-release file, so this is an unknown distribution, and this script will not run"
 		exit 1
@@ -108,6 +145,15 @@ verify_prerequisites() {
 }
 
 install_gnuradio() {
+
+	# DragonOS already has gnuradio and related packages installed
+	if [ "$IS_DRAGONOS" = "1" ]; then
+		GR_VERSION=`gnuradio-config-info -v 2>/dev/null|tr -d v`
+		echo "DragonOS detected - gnuradio $GR_VERSION and SDR packages are pre-installed"
+		# Just ensure gqrx-sdr is available (pulls from DragonOS PPA if needed)
+		sudo apt-get -y install gqrx-sdr 2>/dev/null || true
+		return 0
+	fi
 
 	GR_VERSION=`gnuradio-config-info -v 2>/dev/null|tr -d v`
 
@@ -264,7 +310,26 @@ install_libosmocore () {
 			}
 
 		make_desktop_icons() {
-			cat > ~/Desktop/xterm_telive.desktop <<EOF2
+			# For DragonOS, install to /usr/share/applications (system-wide)
+			if [ "$IS_DRAGONOS" = "1" ]; then
+				sudo tee /usr/share/applications/xterm_telive.desktop > /dev/null <<EOF2
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Telive xterm 203x60
+Comment=xterm 203x60 for telive TETRA decoder
+Exec=xterm -g 203x60
+Icon=/usr/share/pixmaps/xterm-color_48x48.xpm
+Path=${TETRADIR}/telive-2
+Terminal=false
+StartupNotify=false
+GenericName=xterm 203x60 for telive
+Categories=Other;
+EOF2
+				echo "Desktop entry installed to /usr/share/applications/xterm_telive.desktop"
+			else
+				# Original behavior for other distros
+				cat > ~/Desktop/xterm_telive.desktop <<EOF2
 [Desktop Entry]
 Version=1.0
 Type=Application
@@ -278,8 +343,7 @@ StartupNotify=false
 GenericName=xterm 203x60 for telive
 Name[en_US.utf8]=telive xterm
 EOF2
-
-
+			fi
 }
 
 ######## MAIN
@@ -298,15 +362,18 @@ do_distro_specific_stuff || exit 1
 update_packages || exit 1 
 install_gnuradio || exit 1
 
-#rtl-sdr stuff installs new udev rules, so restart just in case
-sudo service udev restart
+# Skip udev restart and DVB module handling on DragonOS (not needed)
+if [ "$IS_DRAGONOS" != "1" ]; then
+	#rtl-sdr stuff installs new udev rules, so restart just in case
+	sudo service udev restart
 
-#unload these modules just in case, installing librtlsdr blacklists them 
-#anyway, but they may be loaded now, and this might confuse the user
-for i in dvb_usb_rtl28xxu e4000 rtl2832
-do
-	sudo rmmod $i >/dev/null 2>&1
-done
+	#unload these modules just in case, installing librtlsdr blacklists them
+	#anyway, but they may be loaded now, and this might confuse the user
+	for i in dvb_usb_rtl28xxu e4000 rtl2832
+	do
+		sudo rmmod $i >/dev/null 2>&1
+	done
+fi
 
 install_packages || exit 1
 
@@ -327,11 +394,15 @@ echo; echo
 echo "It seems that everything installed correctly :)"
 echo "All of the files are in `pwd`"
 echo
-echo "PLEASE, before proceeding read the manual in `pwd`/telive/telive_doc.pdf"
+echo "PLEASE, before proceeding read the manual in `pwd`/telive-2/telive_doc.pdf"
 
 #copy the manual, maybe some user will notice it is there and actually read it?
-if [ -d ~/Desktop ]; then
-	cp "`pwd`/telive/telive_doc.pdf" ~/Desktop
+if [ "$IS_DRAGONOS" = "1" ]; then
+	# For DragonOS, install desktop entry to /usr/share/applications
+	make_desktop_icons
+elif [ -d ~/Desktop ]; then
+	cp "`pwd`/telive-2/telive_doc.pdf" ~/Desktop 2>/dev/null || \
+	cp "`pwd`/telive/telive_doc.pdf" ~/Desktop 2>/dev/null || true
 	echo "or the telive_doc.pdf file on the desktop"
 	make_desktop_icons
 fi
